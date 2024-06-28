@@ -1,6 +1,6 @@
 # RFlow chat
 
-Command-line client for RFlow
+Command-line client for [RFlow](https://crates.io/crates/rflow).
 
 <img
 src="https://raw.githubusercontent.com/roboplc/rflow/main/rflow-chat/rflow-chat.png"
