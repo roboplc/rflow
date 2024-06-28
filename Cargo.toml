@@ -1,0 +1,17 @@
+[package]
+name = "rflow"
+version = "0.0.3"
+edition = "2021"
+authors = ["Serhij S. <div@altertech.com>"]
+license = "Apache-2.0"
+description = "Text protocol for embedded apps"
+repository = "https://github.com/roboplc/rflow"
+keywords = ["realtime", "robots", "chat", "interface", "control"]
+readme = "README.md"
+
+[dependencies]
+once_cell = "1.19.0"
+parking_lot_rt = "0.12.1"
+rtsc = "0.1.10"
+thiserror = "1.0.61"
+tracing = "0.1.40"
