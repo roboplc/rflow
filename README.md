@@ -19,8 +19,8 @@ RFlow provides the most possible lightweight way to have a chat-like interface
 between the application (server) and its clients, which does not affect the
 application real-time run-flow and consumes minimal system resources.
 
-The [RFlow protocol](blob/main/protocol.md) is fully text-based and can be used
-with no special client.
+The [RFlow protocol](protocol.md) is fully text-based and can be used with no
+special client.
 
 ## Clients
 
