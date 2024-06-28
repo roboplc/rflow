@@ -10,8 +10,8 @@ use cursive::views::{Dialog, EditView, LinearLayout, NamedView, ScrollView, Text
 use cursive::Cursive;
 use cursive::CursiveExt;
 
-const COLOR_INCOMING: Color = Color::Light(BaseColor::Blue);
-const COLOR_OUTGOING: Color = Color::TerminalDefault;
+const COLOR_CLIENT_TO_SERVER: Color = Color::Light(BaseColor::Blue);
+const COLOR_SERVER_TO_CLIENT: Color = Color::TerminalDefault;
 const COLOR_ERROR: Color = Color::Light(BaseColor::Red);
 const COLOR_OK: Color = Color::Dark(BaseColor::Green);
 
@@ -181,8 +181,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         for (direction, msg) in rx {
             let color = match direction {
-                rflow::Direction::Incoming => COLOR_INCOMING,
-                rflow::Direction::Outgoing => COLOR_OUTGOING,
+                rflow::Direction::ClientToServer => COLOR_CLIENT_TO_SERVER,
+                rflow::Direction::ServerToClient => COLOR_SERVER_TO_CLIENT,
                 rflow::Direction::Last => unreachable!(),
             };
             append_msg!(format!("{} {}\n", direction.as_char(), msg), color);
