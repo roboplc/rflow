@@ -52,7 +52,8 @@ impl Server {
             .store(max_clients, atomic::Ordering::Relaxed);
         Ok(())
     }
-    /// Set the outgoing queue size (default: 128)
+    /// Set the outgoing queue size (default: 128). Note: if a client's queue size is full,
+    /// messages are dropped to prevent any server blocking.
     pub fn set_outgoing_queue_size(&self, size: usize) -> Result<(), Error> {
         self.inner
             .outgoing_queue_size
