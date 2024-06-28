@@ -1,3 +1,6 @@
+#![ doc = include_str!( concat!( env!( "CARGO_MANIFEST_DIR" ), "/", "README.md" ) ) ]
+#![deny(missing_docs)]
+
 use core::fmt;
 use std::{net::ToSocketAddrs, sync::Arc, time::Duration};
 
@@ -48,18 +51,24 @@ pub fn take_data_channel() -> Result<Receiver<Arc<String>>, Error> {
     DEFAULT_SERVER.take_data_channel()
 }
 
+/// Direction of the message (client)
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Direction {
+    /// Incoming message (from the server)
     Incoming,
+    /// Outgoing message (to the server)
     Outgoing,
+    /// Unknown, use the last known direction
     Last,
 }
 
 impl Direction {
+    /// Get direction as bytes
     #[inline]
     pub fn as_bytes(self) -> &'static [u8] {
         self.as_str().as_bytes()
     }
+    /// Get direction as string
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Incoming => ">>>",
@@ -67,6 +76,7 @@ impl Direction {
             Self::Last => unreachable!(),
         }
     }
+    /// Get direction as char
     pub fn as_char(self) -> char {
         match self {
             Self::Incoming => '>',
@@ -85,18 +95,22 @@ impl fmt::Display for Direction {
 /// Error type
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    /// Data channel is already taken
     #[error("Data channel is already taken")]
     DataChannelTaken,
+    /// All I/O errors
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Unsupported API version: {0}")]
     /// Unsupported API version
     ApiVersion(u8),
+    /// Invalid data
     #[error("Invalid data")]
     InvalidData,
     /// Invalid TCP/IP address/host name/port
     #[error("Invalid address")]
     InvalidAddress,
+    /// Timed out
     #[error("Timed out")]
     Timeout,
 }

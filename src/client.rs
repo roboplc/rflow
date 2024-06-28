@@ -18,6 +18,7 @@ use crate::{
     HEADERS_TRANSMISSION_END,
 };
 
+/// Client instance
 #[derive(Clone)]
 pub struct Client {
     inner: Arc<Inner>,
@@ -28,6 +29,7 @@ struct Inner {
     connected: Arc<atomic::AtomicBool>,
 }
 
+/// Connection options
 #[derive(Clone)]
 pub struct ConnectionOptions {
     timeout: Duration,
@@ -44,13 +46,16 @@ impl Default for ConnectionOptions {
 }
 
 impl ConnectionOptions {
+    /// Create a new connection options instance
     pub fn new() -> Self {
         Self::default()
     }
+    /// Set the connection timeout (default: 5 seconds)
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
     }
+    /// Set the incoming queue size (default: 128)
     pub fn incoming_queue_size(mut self, size: usize) -> Self {
         self.incoming_queue_size = size;
         self
@@ -137,12 +142,14 @@ impl Client {
             rx,
         ))
     }
+    /// Send a message to the server
     pub fn try_send(&self, data: impl ToString) -> Result<(), Error> {
         let mut stream = self.inner.stream.lock();
         stream
             .write_all(format!("{}\n", data.to_string()).as_bytes())
             .map_err(Into::into)
     }
+    /// Check if the client is connected
     pub fn is_connected(&self) -> bool {
         self.inner.connected.load(atomic::Ordering::Relaxed)
     }

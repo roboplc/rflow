@@ -21,12 +21,14 @@ use crate::{
 
 const DEFAULT_MAX_CLIENTS: usize = 16;
 
+/// Server instance
 #[derive(Clone)]
 pub struct Server {
     inner: Arc<Inner>,
 }
 
 impl Server {
+    /// Create a new server instance with the specified timeout
     pub fn new(timeout: Duration) -> Self {
         let (incoming_data_tx, incoming_data_rx) = channel::bounded(DEFAULT_INCOMING_QUEUE_SIZE);
         Self {
@@ -43,18 +45,21 @@ impl Server {
             .into(),
         }
     }
+    /// Set the maximum number of clients (default: 16)
     pub fn set_max_clients(&self, max_clients: usize) -> Result<(), Error> {
         self.inner
             .max_clients
             .store(max_clients, atomic::Ordering::Relaxed);
         Ok(())
     }
+    /// Set the outgoing queue size (default: 128)
     pub fn set_outgoing_queue_size(&self, size: usize) -> Result<(), Error> {
         self.inner
             .outgoing_queue_size
             .store(size, atomic::Ordering::Relaxed);
         Ok(())
     }
+    /// Set the incoming queue size (default: 128)
     pub fn set_incoming_queue_size(&self, size: usize) -> Result<(), Error> {
         let mut rx = self.inner.incoming_data_rx.lock();
         if rx.is_none() {
@@ -65,6 +70,7 @@ impl Server {
         *rx = Some(incoming_data_rx);
         Ok(())
     }
+    /// Take the data channel
     pub fn take_data_channel(&self) -> Result<Receiver<Arc<String>>, Error> {
         self.inner
             .incoming_data_rx
@@ -72,6 +78,7 @@ impl Server {
             .take()
             .ok_or(Error::DataChannelTaken)
     }
+    /// Send a message to the clients
     #[inline]
     pub fn send(&self, data: impl ToString) {
         if self.inner.client_count.load(atomic::Ordering::Relaxed) > 0 {
@@ -79,10 +86,12 @@ impl Server {
                 .send(Direction::Outgoing, data.to_string().into());
         }
     }
+    /// Serve the server
     pub fn serve(&self, addr: impl ToSocketAddrs + std::fmt::Debug) -> Result<(), Error> {
         let listener = TcpListener::bind(addr)?;
         self.serve_with_listener(listener)
     }
+    /// Serve the server with the specified listener
     pub fn serve_with_listener(&self, listener: TcpListener) -> Result<(), Error> {
         trace!(addr = ?listener.local_addr(), "starting server");
         let semaphore = Semaphore::new(self.inner.max_clients.load(atomic::Ordering::Relaxed));
