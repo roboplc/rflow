@@ -179,12 +179,12 @@ fn handle_connection(
         let Ok(line) = line else {
             quit!();
         };
-        if let Some(msg) = line.strip_prefix(Direction::Incoming.as_str()) {
-            last_direction = Some(Direction::Incoming);
-            report_msg!(Direction::Incoming, msg.to_string());
-        } else if let Some(msg) = line.strip_prefix(Direction::Outgoing.as_str()) {
-            last_direction = Some(Direction::Outgoing);
-            report_msg!(Direction::Outgoing, msg.to_string());
+        if let Some(msg) = line.strip_prefix(Direction::ClientToServer.as_str()) {
+            last_direction = Some(Direction::ClientToServer);
+            report_msg!(Direction::ClientToServer, msg.to_string());
+        } else if let Some(msg) = line.strip_prefix(Direction::ServerToClient.as_str()) {
+            last_direction = Some(Direction::ServerToClient);
+            report_msg!(Direction::ServerToClient, msg.to_string());
         } else {
             let Some(last_direction) = last_direction else {
                 quit!();

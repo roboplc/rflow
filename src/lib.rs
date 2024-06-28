@@ -54,10 +54,10 @@ pub fn take_data_channel() -> Result<Receiver<Arc<String>>, Error> {
 /// Direction of the message (client)
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Direction {
-    /// Incoming message (from the server)
-    Incoming,
-    /// Outgoing message (to the server)
-    Outgoing,
+    /// Client-to-server message
+    ClientToServer,
+    /// Server-to-client message
+    ServerToClient,
     /// Unknown, use the last known direction
     Last,
 }
@@ -71,16 +71,16 @@ impl Direction {
     /// Get direction as string
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::Incoming => ">>>",
-            Self::Outgoing => "<<<",
+            Self::ClientToServer => ">>>",
+            Self::ServerToClient => "<<<",
             Self::Last => unreachable!(),
         }
     }
     /// Get direction as char
     pub fn as_char(self) -> char {
         match self {
-            Self::Incoming => '>',
-            Self::Outgoing => '<',
+            Self::ClientToServer => '>',
+            Self::ServerToClient => '<',
             Self::Last => unreachable!(),
         }
     }

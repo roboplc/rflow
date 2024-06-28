@@ -83,7 +83,7 @@ impl Server {
     pub fn send(&self, data: impl ToString) {
         if self.inner.client_count.load(atomic::Ordering::Relaxed) > 0 {
             self.inner
-                .send(Direction::Outgoing, data.to_string().into());
+                .send(Direction::ServerToClient, data.to_string().into());
         }
     }
     /// Serve the server
@@ -183,7 +183,7 @@ fn handle_connection(
     for line in reader.lines() {
         let line: Arc<String> = line?.into();
         incoming_data_tx.send(line.clone())?;
-        inner.send(Direction::Incoming, line);
+        inner.send(Direction::ClientToServer, line);
     }
     trace!("shutting down connection");
     socket.shutdown(Shutdown::Both)?;
