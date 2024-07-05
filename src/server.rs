@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use parking_lot_rt::Mutex;
+use rtsc::locking::Mutex;
 use rtsc::{
     channel::{self, Receiver, Sender},
     semaphore::Semaphore,

@@ -195,10 +195,9 @@ dependencies = [
 
 [[package]]
 name = "rflow"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "once_cell",
- "parking_lot_rt",
  "rtsc",
  "thiserror",
  "tracing",
