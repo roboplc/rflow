@@ -85,6 +85,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
+name = "linux-futex"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca13551457f48de808024473c481e3978eb6ea5e7f345433eb0f9c3b325fc1ca"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -205,11 +214,14 @@ dependencies = [
 
 [[package]]
 name = "rtsc"
-version = "0.1.10"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a86c2839c7492a88ddf428763c273245a2cc169728e4c042fbcad089a0304a30"
+checksum = "0a66c01745d203f4540e250cc6e5cc3000f3ed1db78bf0535c7c3c35cd8316c0"
 dependencies = [
  "bma-ts",
+ "libc",
+ "linux-futex",
+ "lock_api",
  "object-id",
  "parking_lot_rt",
  "pin-project",
