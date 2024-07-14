@@ -374,6 +374,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
+name = "linux-futex"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca13551457f48de808024473c481e3978eb6ea5e7f345433eb0f9c3b325fc1ca"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -604,10 +613,9 @@ dependencies = [
 
 [[package]]
 name = "rflow"
-version = "0.0.3"
+version = "0.0.5"
 dependencies = [
  "once_cell",
- "parking_lot_rt",
  "rtsc",
  "thiserror",
  "tracing",
@@ -615,7 +623,7 @@ dependencies = [
 
 [[package]]
 name = "rflow-chat"
-version = "0.1.0"
+version = "0.0.4"
 dependencies = [
  "clap",
  "cursive",
@@ -624,11 +632,14 @@ dependencies = [
 
 [[package]]
 name = "rtsc"
-version = "0.1.10"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a86c2839c7492a88ddf428763c273245a2cc169728e4c042fbcad089a0304a30"
+checksum = "8499ee7b98e98c35198b4d56a435c8afe2d455fd5f835f92adcf64f1afd5fb4f"
 dependencies = [
  "bma-ts",
+ "libc",
+ "linux-futex",
+ "lock_api",
  "object-id",
  "parking_lot_rt",
  "pin-project",

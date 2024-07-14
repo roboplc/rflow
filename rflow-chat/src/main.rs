@@ -17,7 +17,7 @@ const COLOR_OK: Color = Color::Dark(BaseColor::Green);
 
 #[derive(Parser)]
 struct Args {
-    #[clap()]
+    #[clap(help = "HOST[:PORT], the default port is 4001")]
     server: String,
     #[clap(long, default_value = "5")]
     timeout: u16,
@@ -122,9 +122,13 @@ fn handle_input(siv: &mut Cursive, text: &str, command_prefix: &str, client: &rf
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+    let mut server = args.server;
+    if !server.contains(':') {
+        server = format!("{}:4001", server);
+    }
 
     let (client, rx) = rflow::Client::connect_with_options(
-        &args.server,
+        &server,
         &rflow::ConnectionOptions::new().timeout(Duration::from_secs(args.timeout.into())),
     )?;
     let mut siv = Cursive::default();
@@ -165,7 +169,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .child(input)
         .full_screen();
 
-    siv.add_fullscreen_layer(Dialog::around(chat_layout).title(format!("{} - rflow", args.server)));
+    siv.add_fullscreen_layer(Dialog::around(chat_layout).title(format!("{} - rflow", server)));
 
     let cb_sink = siv.cb_sink().clone();
 
