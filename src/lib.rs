@@ -13,6 +13,11 @@ pub use server::Server;
 mod client;
 pub use client::{Client, ConnectionOptions};
 
+#[cfg(feature = "async")]
+mod client_async;
+#[cfg(feature = "async")]
+pub use client_async::ClientAsync;
+
 const GREETING: &str = "RFLOW";
 const HEADERS_TRANSMISSION_END: &str = "---";
 
@@ -113,4 +118,11 @@ pub enum Error {
     /// Timed out
     #[error("Timed out")]
     Timeout,
+}
+
+#[cfg(feature = "async")]
+impl From<tokio::time::error::Elapsed> for Error {
+    fn from(_: tokio::time::error::Elapsed) -> Self {
+        Self::Timeout
+    }
 }

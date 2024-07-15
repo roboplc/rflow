@@ -1,95 +1,75 @@
 use std::{
-    io::{BufRead, Write},
-    net::{Shutdown, TcpStream, ToSocketAddrs},
+    net::ToSocketAddrs,
     sync::{atomic, Arc},
-    thread,
     time::Duration,
 };
 
-use rtsc::locking::Mutex;
 use rtsc::{
-    channel::{Receiver, Sender},
+    channel_async::{Receiver, Sender},
     ops::Operation,
+};
+use tokio::{
+    io::{AsyncBufReadExt, AsyncWriteExt},
+    net::{
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
+        TcpStream,
+    },
+    sync::Mutex,
+    task::JoinHandle,
 };
 use tracing::trace;
 
 use crate::{
-    Direction, Error, API_VERSION, DEFAULT_INCOMING_QUEUE_SIZE, DEFAULT_TIMEOUT, GREETING,
-    HEADERS_TRANSMISSION_END,
+    client::ConnectionOptions, Direction, Error, API_VERSION, GREETING, HEADERS_TRANSMISSION_END,
 };
 
 /// Client instance
 #[derive(Clone)]
-pub struct Client {
+pub struct ClientAsync {
     inner: Arc<Inner>,
 }
 
 struct Inner {
-    stream: Mutex<TcpStream>,
+    writer: Mutex<OwnedWriteHalf>,
     connected: Arc<atomic::AtomicBool>,
+    timeout: Duration,
+    reader_fut: rtsc::pi::Mutex<JoinHandle<()>>,
 }
 
-/// Connection options
-#[derive(Clone)]
-pub struct ConnectionOptions {
-    pub(crate) timeout: Duration,
-    pub(crate) incoming_queue_size: usize,
-}
-
-impl Default for ConnectionOptions {
-    fn default() -> Self {
-        Self {
-            timeout: DEFAULT_TIMEOUT,
-            incoming_queue_size: DEFAULT_INCOMING_QUEUE_SIZE,
-        }
-    }
-}
-
-impl ConnectionOptions {
-    /// Create a new connection options instance
-    pub fn new() -> Self {
-        Self::default()
-    }
-    /// Set the connection timeout (default: 5 seconds)
-    pub fn timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = timeout;
-        self
-    }
-    /// Set the incoming queue size (default: 128)
-    pub fn incoming_queue_size(mut self, size: usize) -> Self {
-        self.incoming_queue_size = size;
-        self
-    }
-}
-
-impl Client {
+impl ClientAsync {
     /// Connect to a server and create a client instance
-    pub fn connect(
+    pub async fn connect(
         addr: impl ToSocketAddrs,
     ) -> Result<(Self, Receiver<(Direction, String)>), Error> {
-        Self::connect_with_options(addr, &ConnectionOptions::default())
+        Self::connect_with_options(addr, &ConnectionOptions::default()).await
     }
     /// Connect to a server and create a client instance with the defined options
-    pub fn connect_with_options(
+    pub async fn connect_with_options(
         addr: impl ToSocketAddrs,
         options: &ConnectionOptions,
     ) -> Result<(Self, Receiver<(Direction, String)>), Error> {
         let timeout = options.timeout;
         let op = Operation::new(timeout);
-        let stream = TcpStream::connect_timeout(
-            &addr
-                .to_socket_addrs()?
-                .next()
-                .ok_or(Error::InvalidAddress)?,
+        let mut stream = tokio::time::timeout(
             timeout,
-        )?;
-        stream.set_read_timeout(Some(timeout))?;
-        stream.set_write_timeout(Some(timeout))?;
+            TcpStream::connect(
+                &addr
+                    .to_socket_addrs()?
+                    .next()
+                    .ok_or(Error::InvalidAddress)?,
+            ),
+        )
+        .await??;
         stream.set_nodelay(true)?;
-        let reader = &mut std::io::BufReader::new(&stream);
+        let reader = tokio::io::BufReader::new(&mut stream);
         let mut lines = reader.lines();
         trace!("reading greeting");
-        let line = lines.next().ok_or(Error::InvalidData)??;
+        let line = tokio::time::timeout(
+            op.remaining().map_err(|_| Error::Timeout)?,
+            lines.next_line(),
+        )
+        .await??
+        .ok_or(Error::InvalidData)?;
         let mut sp = line.split('/');
         if sp.next() != Some(GREETING) {
             return Err(Error::InvalidData);
@@ -111,31 +91,35 @@ impl Client {
         }
         trace!("reading headers");
         let mut headers_end = false;
-        stream.set_read_timeout(Some(op.remaining().map_err(|_| Error::Timeout)?))?;
         // headers are reserved for future use
-        for line in lines.by_ref() {
-            if line? == HEADERS_TRANSMISSION_END {
+        while let Ok(Some(line)) = tokio::time::timeout(
+            op.remaining().map_err(|_| Error::Timeout)?,
+            lines.next_line(),
+        )
+        .await?
+        {
+            if line == HEADERS_TRANSMISSION_END {
                 headers_end = true;
                 break;
             }
-            stream.set_read_timeout(Some(op.remaining().map_err(|_| Error::Timeout)?))?;
         }
         if !headers_end {
             trace!("Invalid headers transmission end");
             return Err(Error::InvalidData);
         }
         trace!(api_version, "connection estabilished");
-        stream.set_read_timeout(None)?;
-        let (tx, rx) = rtsc::channel::bounded(options.incoming_queue_size);
-        let stream_c = stream.try_clone()?;
+        let (tx, rx) = rtsc::channel_async::bounded(options.incoming_queue_size);
+        let (reader, writer) = stream.into_split();
         let connected = Arc::new(atomic::AtomicBool::new(true));
         let connected_c = connected.clone();
-        thread::spawn(move || handle_connection(tx, stream_c, connected_c));
+        let reader_fut = tokio::spawn(handle_connection(tx, reader, connected_c));
         Ok((
             Self {
                 inner: Inner {
-                    stream: Mutex::new(stream),
+                    writer: Mutex::new(writer),
                     connected,
+                    timeout,
+                    reader_fut: rtsc::pi::Mutex::new(reader_fut),
                 }
                 .into(),
             },
@@ -143,11 +127,14 @@ impl Client {
         ))
     }
     /// Send a message to the server
-    pub fn try_send(&self, data: impl ToString) -> Result<(), Error> {
-        let mut stream = self.inner.stream.lock();
-        stream
-            .write_all(format!("{}\n", data.to_string()).as_bytes())
-            .map_err(Into::into)
+    pub async fn try_send(&self, data: impl ToString) -> Result<(), Error> {
+        let mut writer = self.inner.writer.lock().await;
+        tokio::time::timeout(
+            self.inner.timeout,
+            writer.write_all(format!("{}\n", data.to_string()).as_bytes()),
+        )
+        .await?
+        .map_err(Into::into)
     }
     /// Check if the client is connected
     pub fn is_connected(&self) -> bool {
@@ -155,30 +142,27 @@ impl Client {
     }
 }
 
-fn handle_connection(
+async fn handle_connection(
     tx: Sender<(Direction, String)>,
-    stream: TcpStream,
+    mut reader: OwnedReadHalf,
     connected: Arc<atomic::AtomicBool>,
 ) {
     macro_rules! quit {
         () => {{
-            stream.shutdown(Shutdown::Both).ok();
             break;
         }};
     }
     macro_rules! report_msg {
         ($dir: expr, $msg: expr) => {
-            if tx.send(($dir, $msg)).is_err() {
+            if tx.send(($dir, $msg)).await.is_err() {
                 quit!();
             }
         };
     }
-    let reader = &mut std::io::BufReader::new(&stream);
+    let reader = tokio::io::BufReader::new(&mut reader);
     let mut last_direction: Option<Direction> = None;
-    for line in reader.lines() {
-        let Ok(line) = line else {
-            quit!();
-        };
+    let mut lines = reader.lines();
+    while let Ok(Some(line)) = lines.next_line().await {
         if let Some(msg) = line.strip_prefix(Direction::ClientToServer.as_str()) {
             last_direction = Some(Direction::ClientToServer);
             report_msg!(Direction::ClientToServer, msg.to_string());
@@ -195,9 +179,9 @@ fn handle_connection(
     connected.store(false, atomic::Ordering::Relaxed);
 }
 
-impl Drop for Client {
+impl Drop for ClientAsync {
     fn drop(&mut self) {
-        self.inner.stream.lock().shutdown(Shutdown::Both).ok();
+        self.inner.reader_fut.lock().abort();
         self.inner.connected.store(false, atomic::Ordering::Relaxed);
     }
 }
