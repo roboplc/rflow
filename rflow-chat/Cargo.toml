@@ -13,3 +13,6 @@ readme = "README.md"
 clap = { version = "4.5.7", features = ["derive"] }
 cursive = "0.20.0"
 rflow = { path = ".." }
+
+[profile.release]
+strip = true
