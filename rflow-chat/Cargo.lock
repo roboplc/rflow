@@ -613,7 +613,9 @@ dependencies = [
 
 [[package]]
 name = "rflow"
-version = "0.0.5"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78d9dd171374caf1249d99be2fe8a7b6889baf1c68031f071bc39560c2b3ee9d"
 dependencies = [
  "once_cell",
  "rtsc",
@@ -623,7 +625,7 @@ dependencies = [
 
 [[package]]
 name = "rflow-chat"
-version = "0.0.4"
+version = "0.0.6"
 dependencies = [
  "clap",
  "cursive",
