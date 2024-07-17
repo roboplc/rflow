@@ -183,8 +183,8 @@ fn handle_connection(
     });
     for line in reader.lines() {
         let line: Arc<String> = line?.into();
-        incoming_data_tx.send(line.clone())?;
-        inner.send(Direction::ClientToServer, line);
+        inner.send(Direction::ClientToServer, line.clone());
+        incoming_data_tx.send(line)?;
     }
     trace!("shutting down connection");
     socket.shutdown(Shutdown::Both)?;
