@@ -24,6 +24,8 @@ application real-time run-flow and consumes minimal system resources.
 The [RFlow protocol](https://github.com/roboplc/rflow/blob/main/protocol.md) is
 fully text-based and can be used with no special client.
 
+MSRV: 1.68.0
+
 ## Clients
 
 * [RFlow Chat](https://crates.io/crates/rflow-chat) - a dedicated RFlow chat
@@ -61,3 +63,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+## Locking safety
+
+Note: the asynchronous client uses `parking_lot_rt` locking only.
+
+By default, the crate (both the server and the client modules) uses
+[parking_lot](https://crates.io/crates/parking_lot) for locking. For real-time
+applications, the following features are available:
+
+* `locking-rt` - use [parking_lot_rt](https://crates.io/crates/parking_lot_rt)
+  crate which is a spin-free fork of parking_lot.
+
+* `locking-rt-safe` - use [rtsc](https://crates.io/crates/rtsc)
+  priority-inheritance locking, which is not affected by priority inversion
+  (Linux only).
+
+Note: to switch locking policy, disable the crate default features.
+
+## About
+
+RFlow is a part of [RoboPLC](https://www.roboplc.com/) project.

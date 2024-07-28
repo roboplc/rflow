@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use rtsc::locking::Mutex;
+use crate::{Condvar, Mutex, RawMutex};
 use rtsc::{
     channel::{self, Receiver, Sender},
     semaphore::Semaphore,
@@ -26,6 +26,8 @@ const DEFAULT_MAX_CLIENTS: usize = 16;
 pub struct Server {
     inner: Arc<Inner>,
 }
+
+pub type FrameReceiver = Receiver<Arc<String>, RawMutex, Condvar>;
 
 impl Server {
     /// Create a new server instance with the specified timeout
@@ -72,7 +74,7 @@ impl Server {
         Ok(())
     }
     /// Take the data channel
-    pub fn take_data_channel(&self) -> Result<Receiver<Arc<String>>, Error> {
+    pub fn take_data_channel(&self) -> Result<FrameReceiver, Error> {
         self.inner
             .incoming_data_rx
             .lock()
@@ -95,7 +97,8 @@ impl Server {
     /// Serve the server with the specified listener
     pub fn serve_with_listener(&self, listener: TcpListener) -> Result<(), Error> {
         trace!(addr = ?listener.local_addr(), "starting server");
-        let semaphore = Semaphore::new(self.inner.max_clients.load(atomic::Ordering::Relaxed));
+        let semaphore: Semaphore<RawMutex, Condvar> =
+            Semaphore::new(self.inner.max_clients.load(atomic::Ordering::Relaxed));
         while let Ok((mut socket, addr)) = listener.accept() {
             trace!(?addr, "new connection");
             let permission = semaphore.acquire();
@@ -126,7 +129,7 @@ impl Server {
     }
 }
 
-type ClientMap = BTreeMap<usize, Sender<(Direction, Arc<String>)>>;
+type ClientMap = BTreeMap<usize, Sender<(Direction, Arc<String>), RawMutex, Condvar>>;
 
 struct Inner {
     timeout: Duration,
@@ -135,8 +138,8 @@ struct Inner {
     client_count: atomic::AtomicUsize,
     outgoing_queue_size: atomic::AtomicUsize,
     max_clients: atomic::AtomicUsize,
-    incoming_data_tx: Mutex<Sender<Arc<String>>>,
-    incoming_data_rx: Mutex<Option<Receiver<Arc<String>>>>,
+    incoming_data_tx: Mutex<Sender<Arc<String>, RawMutex, Condvar>>,
+    incoming_data_rx: Mutex<Option<FrameReceiver>>,
 }
 
 impl Inner {
@@ -155,8 +158,8 @@ impl Inner {
 fn handle_connection(
     socket: &mut TcpStream,
     inner: &Inner,
-    incoming_data_tx: Sender<Arc<String>>,
-    outgoing_data_rx: Receiver<(Direction, Arc<String>)>,
+    incoming_data_tx: Sender<Arc<String>, RawMutex, Condvar>,
+    outgoing_data_rx: Receiver<(Direction, Arc<String>), RawMutex, Condvar>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     socket.set_write_timeout(Some(inner.timeout))?;
     socket.set_nodelay(true)?;

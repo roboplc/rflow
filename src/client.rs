@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use rtsc::locking::Mutex;
+use crate::{Condvar, Mutex, RawMutex};
 use rtsc::{
     channel::{Receiver, Sender},
     ops::Operation,
@@ -45,6 +45,9 @@ impl Default for ConnectionOptions {
     }
 }
 
+type FrameSender = Sender<(Direction, String), RawMutex, Condvar>;
+pub type FrameReceiver = Receiver<(Direction, String), RawMutex, Condvar>;
+
 impl ConnectionOptions {
     /// Create a new connection options instance
     pub fn new() -> Self {
@@ -64,16 +67,14 @@ impl ConnectionOptions {
 
 impl Client {
     /// Connect to a server and create a client instance
-    pub fn connect(
-        addr: impl ToSocketAddrs,
-    ) -> Result<(Self, Receiver<(Direction, String)>), Error> {
+    pub fn connect(addr: impl ToSocketAddrs) -> Result<(Self, FrameReceiver), Error> {
         Self::connect_with_options(addr, &ConnectionOptions::default())
     }
     /// Connect to a server and create a client instance with the defined options
     pub fn connect_with_options(
         addr: impl ToSocketAddrs,
         options: &ConnectionOptions,
-    ) -> Result<(Self, Receiver<(Direction, String)>), Error> {
+    ) -> Result<(Self, FrameReceiver), Error> {
         let timeout = options.timeout;
         let op = Operation::new(timeout);
         let stream = TcpStream::connect_timeout(
@@ -155,11 +156,7 @@ impl Client {
     }
 }
 
-fn handle_connection(
-    tx: Sender<(Direction, String)>,
-    stream: TcpStream,
-    connected: Arc<atomic::AtomicBool>,
-) {
+fn handle_connection(tx: FrameSender, stream: TcpStream, connected: Arc<atomic::AtomicBool>) {
     macro_rules! quit {
         () => {{
             stream.shutdown(Shutdown::Both).ok();

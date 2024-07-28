@@ -4,6 +4,7 @@ use std::{
     time::Duration,
 };
 
+use parking_lot_rt::Mutex as SyncMutex;
 use rtsc::{
     channel_async::{Receiver, Sender},
     ops::Operation,
@@ -33,7 +34,7 @@ struct Inner {
     writer: Mutex<OwnedWriteHalf>,
     connected: Arc<atomic::AtomicBool>,
     timeout: Duration,
-    reader_fut: rtsc::pi::Mutex<JoinHandle<()>>,
+    reader_fut: SyncMutex<JoinHandle<()>>,
 }
 
 impl ClientAsync {
@@ -119,7 +120,7 @@ impl ClientAsync {
                     writer: Mutex::new(writer),
                     connected,
                     timeout,
-                    reader_fut: rtsc::pi::Mutex::new(reader_fut),
+                    reader_fut: SyncMutex::new(reader_fut),
                 }
                 .into(),
             },

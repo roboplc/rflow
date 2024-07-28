@@ -210,6 +210,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
+name = "parking_lot"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1bf18183cf54e8d6059647fc3063646a1801cf30896933ec2311622cc4b9a27"
+dependencies = [
+ "lock_api",
+ "parking_lot_core",
+]
+
+[[package]]
 name = "parking_lot_core"
 version = "0.9.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -290,6 +300,8 @@ name = "rflow"
 version = "0.0.7"
 dependencies = [
  "once_cell",
+ "parking_lot",
+ "parking_lot_rt",
  "rtsc",
  "thiserror",
  "tokio",
@@ -298,15 +310,16 @@ dependencies = [
 
 [[package]]
 name = "rtsc"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a66c01745d203f4540e250cc6e5cc3000f3ed1db78bf0535c7c3c35cd8316c0"
+checksum = "76f22a6f55bf4d76fc85efc3559066be0d87ef2f196721ae79c9cb1d5e913a39"
 dependencies = [
  "bma-ts",
  "libc",
  "linux-futex",
  "lock_api",
  "object-id",
+ "parking_lot",
  "parking_lot_rt",
  "pin-project",
  "rtsc-derive",

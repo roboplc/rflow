@@ -2,10 +2,9 @@
 #![deny(missing_docs)]
 
 use core::fmt;
-use std::{net::ToSocketAddrs, sync::Arc, time::Duration};
+use std::{net::ToSocketAddrs, time::Duration};
 
 use once_cell::sync::Lazy;
-use rtsc::channel::Receiver;
 
 mod server;
 pub use server::Server;
@@ -17,6 +16,15 @@ pub use client::{Client, ConnectionOptions};
 mod client_async;
 #[cfg(feature = "async")]
 pub use client_async::ClientAsync;
+
+#[cfg(feature = "locking-default")]
+use parking_lot::{Condvar, Mutex, RawMutex};
+
+#[cfg(feature = "locking-rt")]
+use parking_lot_rt::{Condvar, Mutex, RawMutex};
+
+#[cfg(feature = "locking-rt-safe")]
+use rtsc::pi::{Condvar, Mutex, RawMutex};
 
 const GREETING: &str = "RFLOW";
 const HEADERS_TRANSMISSION_END: &str = "---";
@@ -36,7 +44,7 @@ pub fn serve(addr: impl ToSocketAddrs + std::fmt::Debug) -> Result<(), Error> {
 }
 
 /// Spawn the default server as a separate thread and return the data channel
-pub fn spawn(addr: impl ToSocketAddrs + std::fmt::Debug) -> Result<Receiver<Arc<String>>, Error> {
+pub fn spawn(addr: impl ToSocketAddrs + std::fmt::Debug) -> Result<server::FrameReceiver, Error> {
     let listener = std::net::TcpListener::bind(addr)?;
     std::thread::spawn(move || {
         DEFAULT_SERVER
@@ -52,7 +60,7 @@ pub fn send(data: impl ToString) {
 }
 
 /// Take the default server data channel
-pub fn take_data_channel() -> Result<Receiver<Arc<String>>, Error> {
+pub fn take_data_channel() -> Result<server::FrameReceiver, Error> {
     DEFAULT_SERVER.take_data_channel()
 }
 
