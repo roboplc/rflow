@@ -1,6 +1,6 @@
 use std::io::Write;
-use std::thread;
 use std::time::Duration;
+use std::{process, thread};
 
 use clap::Parser;
 use cursive::theme::{BaseColor, Color, Palette, PaletteColor, Theme};
@@ -23,6 +23,8 @@ struct Args {
     timeout: u16,
     #[clap(long, default_value = ":")]
     command_prefix: String,
+    #[clap(long, help = "Terminate on disconnect")]
+    terminate: bool,
 }
 
 macro_rules! append_chat_msg {
@@ -173,6 +175,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cb_sink = siv.cb_sink().clone();
 
+    let terminate = args.terminate;
+
     thread::spawn(move || {
         macro_rules! append_msg {
             ($msg: expr, $color: expr) => {
@@ -191,7 +195,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             append_msg!(format!("{} {}\n", direction.as_char(), msg), color);
         }
-        append_msg!("Server connection closed\n", COLOR_ERROR);
+        if terminate {
+            cb_sink.send(Box::new(|s| s.quit())).unwrap();
+            thread::sleep(Duration::from_millis(200));
+            eprintln!("Server connection closed");
+            process::exit(1);
+        } else {
+            append_msg!("Server connection closed\n", COLOR_ERROR);
+        }
     });
 
     siv.run();

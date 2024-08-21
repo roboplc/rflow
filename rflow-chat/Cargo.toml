@@ -1,6 +1,6 @@
 [package]
 name = "rflow-chat"
-version = "0.0.6"
+version = "0.0.7"
 edition = "2021"
 authors = ["Serhij S. <div@altertech.com>"]
 license = "Apache-2.0"
@@ -11,7 +11,7 @@ readme = "README.md"
 
 [dependencies]
 clap = { version = "4.5.7", features = ["derive"] }
-cursive = "0.20.0"
+cursive = "0.21.1"
 rflow = { version = "0.0.7" }
 
 [profile.release]
