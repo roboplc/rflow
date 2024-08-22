@@ -56,7 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: cargo test
-        run: cd rflow-chat && sudo apt-get -y install nasm && cargo test --verbose --all-features --all-targets
+        run: cd rflow-chat && cargo test --verbose --all-features --all-targets
   chat-fmt:
     runs-on: ubuntu-latest
     steps:
