@@ -146,7 +146,7 @@ impl Inner {
     fn send(&self, direction: Direction, data: Arc<String>) {
         for client in self.clients.lock().values() {
             if let Err(e) = client.try_send((direction, data.clone())) {
-                if e == rtsc::Error::ChannelFull {
+                if matches!(e, rtsc::Error::ChannelFull) {
                     warn!("failed to send data to a client, queue overflow");
                 }
                 // ignore all other errors
