@@ -24,7 +24,7 @@ application real-time run-flow and consumes minimal system resources.
 The [RFlow protocol](https://github.com/roboplc/rflow/blob/main/protocol.md) is
 fully text-based and can be used with no special client.
 
-MSRV: 1.68.0
+MSRV: 1.81.0
 
 ## Clients
 
