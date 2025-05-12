@@ -9,6 +9,12 @@ repository = "https://github.com/roboplc/rflow"
 keywords = ["realtime", "robots", "chat", "interface", "control"]
 readme = "README.md"
 
+[package.metadata.docs.rs]
+features = ["full"]
+
+[package.metadata.playground]
+features = ["full"]
+
 [dependencies]
 once_cell = "1.19.0"
 rtsc = "0.3"
